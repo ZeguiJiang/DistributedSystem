@@ -1,5 +1,8 @@
 package client1;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -14,14 +17,22 @@ public class MultiThreadCall {
   public static void main(String[] args) throws InterruptedException {
 
 //    final String ipAddress = "localhost:8080";
-    final String ipAddress = "18.236.136.1:8080";
-    final int numberOfThread = 32;
-    ExecutorService executor = Executors.newFixedThreadPool(numberOfThread);
+
+
+    final String ipAddress = "34.220.164.24:8080";
+    final int numberOfThreadForProcess1 = 32;
+    final int numberOfThreadForProcess2 = 800;
+    ExecutorService executor = Executors.newFixedThreadPool(numberOfThreadForProcess1 + numberOfThreadForProcess2);
     BlockingQueue<LiftRideRecord> liftRideRecordBlockingQueue = new LinkedBlockingQueue<>();
     final int requestCount = 200000;
-    final int requestCountPerThread = requestCount / numberOfThread;
+    final int requestCountPerThreadInProcess1 = 1000;
+    final int requestCountPerThreadInProcess2 =( requestCount - (requestCountPerThreadInProcess1 * numberOfThreadForProcess1) ) / numberOfThreadForProcess2;
     AtomicInteger requestSuccessCount = new AtomicInteger(0);
     AtomicInteger requestFailureCount = new AtomicInteger(0);
+
+
+
+
 
     long threadStartTime = System.currentTimeMillis();
 
@@ -32,10 +43,18 @@ public class MultiThreadCall {
 
 
     CountDownLatch consumerLatch = new CountDownLatch(1);
-    for (int i = 0; i < numberOfThread; i++) {
-      executor.submit( new ApiCaller(ipAddress, liftRideRecordBlockingQueue, requestCountPerThread, requestSuccessCount, requestFailureCount, consumerLatch,5));
+    for (int i = 0; i < numberOfThreadForProcess1; i++) {
+      executor.submit( new ApiCaller(ipAddress, liftRideRecordBlockingQueue, requestCountPerThreadInProcess1, requestSuccessCount, requestFailureCount, consumerLatch,5));
     }
     consumerLatch.await();
+
+    CountDownLatch consumerLatch2 = new CountDownLatch(1);
+    for (int i = 0; i < numberOfThreadForProcess2; i++) {
+      executor.submit( new ApiCaller(ipAddress, liftRideRecordBlockingQueue, requestCountPerThreadInProcess2, requestSuccessCount, requestFailureCount, consumerLatch2,5));
+    }
+    consumerLatch2.await();
+
+
 
     long threadEndTime = System.currentTimeMillis();
     long latency = threadEndTime-threadStartTime;
@@ -44,7 +63,8 @@ public class MultiThreadCall {
     executor.awaitTermination(1, TimeUnit.HOURS);
 
     System.out.println("Summary:");
-    System.out.println("Number of thread: "+ numberOfThread);
+    System.out.println("Number of thread in process 1: "+ numberOfThreadForProcess1);
+    System.out.println("Number of thread in process 2: "+ numberOfThreadForProcess2);
     System.out.println("Number of successful requests: "+ requestSuccessCount.get());
     System.out.println("Number of fail requests: "+ requestFailureCount.get());
     System.out.println("Total run time: " + latency);
