@@ -11,7 +11,7 @@ public class SingleThreadCall {
   public static void main(String[] args) throws InterruptedException {
 
 //    final String ipAddress = "localhost:8080";
-    final String ipAddress = "18.236.136.1:8080";
+    final String ipAddress = "34.220.164.24:8080";
 
     BlockingQueue<LiftRideRecord> liftRideRecordBlockingQueue = new LinkedBlockingQueue<>();
     final Integer requestCount = 100;

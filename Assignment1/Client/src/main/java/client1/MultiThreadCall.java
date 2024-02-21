@@ -21,7 +21,7 @@ public class MultiThreadCall {
 
     final String ipAddress = "34.220.164.24:8080";
     final int numberOfThreadForProcess1 = 32;
-    final int numberOfThreadForProcess2 = 800;
+    final int numberOfThreadForProcess2 = 100;
     ExecutorService executor = Executors.newFixedThreadPool(numberOfThreadForProcess1 + numberOfThreadForProcess2);
     BlockingQueue<LiftRideRecord> liftRideRecordBlockingQueue = new LinkedBlockingQueue<>();
     final int requestCount = 200000;
