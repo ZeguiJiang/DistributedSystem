@@ -14,10 +14,10 @@ public class SingleThreadCall {
 
   public static void main(String[] args) throws InterruptedException {
 
-    //    final String ipAddress = "localhost:8080";
-    final String ipAddress = "18.236.136.1:8080";
+//        final String ipAddress = "localhost:8080";
+    final String ipAddress = "34.220.164.24:8080";
     BlockingQueue<LiftRideRecord> liftRideRecordBlockingQueue = new LinkedBlockingQueue<>();
-    final Integer requestCount = 1000;
+    final Integer requestCount = 100;
     AtomicInteger requestSuccessCount = new AtomicInteger(0);
     AtomicInteger requestFailureCount = new AtomicInteger(0);
     List<ResponseData> responseDataList = Collections.synchronizedList(new ArrayList<>());

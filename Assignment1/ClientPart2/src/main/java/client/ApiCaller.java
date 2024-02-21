@@ -67,6 +67,7 @@ public class ApiCaller implements Runnable {
     SkiersApi skiersApi = new SkiersApi();
     ApiClient apiClient = skiersApi.getApiClient();
     apiClient.setBasePath("http://" + this.ipAddress + "/Server_war/"); // "http://localhost:8080/Server_war_exploded/"
+//    apiClient.setBasePath("http://" + this.ipAddress + "/Server_war_exploded/"); // "http://localhost:8080/Server_war_exploded/"
 
 
     int tmpSuccessCount = 0;
