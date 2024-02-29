@@ -14,7 +14,8 @@ public class SingleThreadCall {
     final String ipAddress = "34.220.164.24:8080";
 
     BlockingQueue<LiftRideRecord> liftRideRecordBlockingQueue = new LinkedBlockingQueue<>();
-    final Integer requestCount = 100;
+    final int requestCount = 100;
+    final int tryCount = 5;
 
     AtomicInteger requestSuccessCount = new AtomicInteger(0);
     AtomicInteger requestFailureCount = new AtomicInteger(0);
@@ -27,13 +28,14 @@ public class SingleThreadCall {
     producerThread.start();
 
     CountDownLatch consumerLatch = new CountDownLatch(1);
-    ApiCaller singleThreadCall = new ApiCaller(ipAddress, liftRideRecordBlockingQueue, requestCount, requestSuccessCount, requestFailureCount, consumerLatch,5);
+    ApiCaller singleThreadCall = new ApiCaller(ipAddress, liftRideRecordBlockingQueue, requestCount, requestSuccessCount, requestFailureCount, consumerLatch, tryCount);
     Thread singleThread = new Thread(singleThreadCall);
     singleThread.start();
     consumerLatch.await();
 
     long threadEndTime = System.currentTimeMillis();
     long latency = threadEndTime-threadStartTime;
+    long oneThousandMillionSecond = 1000L;
 
     System.out.println("Summary:");
     System.out.println("Number of thread:" + "1");
@@ -41,6 +43,6 @@ public class SingleThreadCall {
     System.out.println("Number of fail requests: "+ requestFailureCount.get());
     System.out.println("Total run time: " + latency);
     System.out.println("Response Time: "+((double)(latency)/(requestSuccessCount.get()+requestFailureCount.get())) + " ms/request");
-    System.out.println("RPS:     " +  (requestSuccessCount.get() + requestFailureCount.get() )  * 1000L / latency + " requests/second");
+    System.out.println("RPS:     " +  (requestSuccessCount.get() + requestFailureCount.get() )  * oneThousandMillionSecond / latency + " requests/second");
   }
 }
