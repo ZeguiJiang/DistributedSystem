@@ -69,45 +69,76 @@ public class SkierServlet extends HttpServlet {
       Message message = new Message("The request url is invalid");
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       printWriter.write(response.getStatus() + gson.toJson(message));
-    } else {
-      try {
-        StringBuilder stringBuilder = new StringBuilder();
-        String str;
-        while ((str = request.getReader().readLine()) != null) {
-          stringBuilder.append(str);
-        }
-        LiftRideRecord liftRideRecord = gson.fromJson(stringBuilder.toString(), LiftRideRecord.class);
-
-        if (!isPostValid(liftRideRecord, urlParts)) {
-          Message message = new Message("The request body is invalid");
-          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-          printWriter.write(response.getStatus() + gson.toJson(message));
-          return;
-        }
-
-        response.setStatus(HttpServletResponse.SC_OK);
-        printWriter.write(response.getStatus() + gson.toJson(stringBuilder));
-      } catch ( Exception e) {
-        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        printWriter.write(response.getStatus()  + "The request body is invalid with exception");
-      }
+      return;
     }
 
+    try {
+      StringBuilder stringBuilder = new StringBuilder();
+      String str;
+      while ((str = request.getReader().readLine()) != null) {
+        stringBuilder.append(str);
+      }
+      LiftRideRecord liftRideRecord = gson.fromJson(stringBuilder.toString(), LiftRideRecord.class);
+
+      if (!isPostValid(liftRideRecord)) {
+        Message message = new Message("The request body is invalid");
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        printWriter.write(response.getStatus() + gson.toJson(message));
+        return;
+      }
+      response.setStatus(HttpServletResponse.SC_OK);
+      printWriter.write(response.getStatus() + gson.toJson(stringBuilder));
+    } catch ( Exception e) {
+      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+      printWriter.write(response.getStatus()  + "The request body is invalid with exception");
+    }
   }
+
 
   private boolean isUrlValid(String[] urlPath) {
     // validate the request url path according to the API spec
     // example valid path
     // "/skier/{resortID}/seasons/{seasonID}/days/{dayID}/skiers/{skierID}"
 
-    if (urlPath.length == 8) {
-      return urlPath[2].equals("seasons") && urlPath[4].equals("days") && urlPath[6].equals(
-          "skiers");
+    int validUrlPathLength = 8;
+    int validUrlPathResortNumberPosition = 1;
+    int validUrlPathSeasonPosition = 2;
+    int validUrlPathSeasonIDPosition = 3;
+    int validUrlPathDaysPosition = 4;
+    int validUrlPathDaysIDPosition = 5;
+    int validUrlPathSkiersPosition = 6;
+    int validUrlPathSkiersIDPosition = 7;
+
+    String dayID = "1";
+    String seasonID = "2024";
+    int resortID_Max = 10;
+    int resortID_Min = 1;
+    int skierID_Max = 100000;
+    int skierID_Min = 1;
+
+    if (urlPath.length == validUrlPathLength) {
+      return urlPath[validUrlPathSeasonPosition].equals("seasons")
+          && urlPath[validUrlPathDaysPosition].equals("days")
+          && urlPath[validUrlPathSkiersPosition].equals("skiers")
+          && urlPath[validUrlPathResortNumberPosition]!= null
+          && isNumeric(urlPath[validUrlPathResortNumberPosition])
+          && urlPath[validUrlPathSeasonIDPosition]!= null
+          && isNumeric(urlPath[validUrlPathSeasonIDPosition])
+          && urlPath[validUrlPathDaysIDPosition]!= null
+          && isNumeric(urlPath[validUrlPathDaysIDPosition])
+          && urlPath[validUrlPathSkiersIDPosition]!= null
+          && isNumeric(urlPath[validUrlPathSkiersIDPosition])
+          && urlPath[validUrlPathDaysIDPosition].equals(dayID)
+          && urlPath[validUrlPathSeasonIDPosition].equals(seasonID)
+          && Integer.parseInt(urlPath[validUrlPathResortNumberPosition]) >= resortID_Min
+          && Integer.parseInt(urlPath[validUrlPathResortNumberPosition]) <= resortID_Max
+          && Integer.parseInt(urlPath[validUrlPathSkiersIDPosition]) >= skierID_Min
+          && Integer.parseInt(urlPath[validUrlPathSkiersIDPosition]) <= skierID_Max;
     }
     return false;
   }
 
-  private boolean isPostValid(LiftRideRecord liftRideRecord, String[] urlPath) {
+  private boolean isPostValid(LiftRideRecord liftRideRecord) {
     // Following are the requirements
     // element must not be null
 
@@ -118,25 +149,25 @@ public class SkierServlet extends HttpServlet {
     //  dayID - 1
     //  time - between 1 and 360
 
-    String dayID = "1";
-    String seasonID = "2024";
     int time_Max = 360;
     int time_Min = 1;
     int liftID_Max = 40;
     int liftID_Min = 1;
-    int resortID_Max = 10;
-    int resortID_Min = 1;
-    int skierID_Max = 100000;
-    int skierID_Min = 1;
-    return Integer.parseInt(urlPath[7]) >= skierID_Min
-        && Integer.parseInt(urlPath[7]) <= skierID_Max
-        && Integer.parseInt(urlPath[1]) >= resortID_Min
-        && Integer.parseInt(urlPath[1]) <= resortID_Max
-        && urlPath[5].equals(dayID)
-        && urlPath[3].equals(seasonID)
-        && liftRideRecord.getTime() >= time_Min
+    return liftRideRecord.getTime() >= time_Min
         && liftRideRecord.getTime() <= time_Max
         && liftRideRecord.getLiftID() >= liftID_Min
         && liftRideRecord.getLiftID() <= liftID_Max;
   }
+
+  private  boolean isNumeric(String str) {
+    try {
+      Double.parseDouble(str);
+      return true;
+    } catch(NumberFormatException e){
+      return false;
+    }
+  }
 }
+
+
+
