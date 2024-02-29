@@ -43,6 +43,9 @@ public class SkierServlet extends HttpServlet {
 
   }
 
+
+
+
   @Override
   protected void doPost(HttpServletRequest request, HttpServletResponse response)
       throws ServletException, IOException {
@@ -84,8 +87,6 @@ public class SkierServlet extends HttpServlet {
 
         response.setStatus(HttpServletResponse.SC_OK);
         printWriter.write(response.getStatus() + gson.toJson(stringBuilder));
-
-
       } catch ( Exception e) {
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         printWriter.write(response.getStatus()  + "The request body is invalid with exception");
