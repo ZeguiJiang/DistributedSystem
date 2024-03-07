@@ -2,29 +2,39 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import java.io.PrintWriter;
-import javax.servlet.*;
-import javax.servlet.http.*;
-import javax.servlet.annotation.*;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.annotation.WebServlet;
 import java.io.IOException;
 import model.LiftRideRecord;
 import model.Message;
 import com.google.gson.Gson;
 
-
 @WebServlet(name = "SkierServlet", value = "/SkierServlet")
 public class SkierServlet extends HttpServlet {
 
-
   private Gson gson = new Gson();
-  private String rabbitMQName = "skiRideQueue";
-  private String rabbitMQHost = "localhost";
-//  ConnectionFactory factory = new ConnectionFactory();
+  public static final String rabbitMQName = "skiRideQueue";
+  public static final String rabbitMQHost = "localhost";
+  private ConnectionFactory factory = new ConnectionFactory();
+
+  private final int validUrlPathLength = 8;
+  private final int validUrlPathResortNumberPosition = 1;
+  private final int validUrlPathSeasonPosition = 2;
+  private final int validUrlPathSeasonIDPosition = 3;
+  private final int validUrlPathDaysPosition = 4;
+  private final int validUrlPathDaysIDPosition = 5;
+  private final int validUrlPathSkiersPosition = 6;
+  private final int validUrlPathSkiersIDPosition = 7;
+
 
   @Override
-  protected void doGet(HttpServletRequest req, HttpServletResponse res)
-      throws ServletException, IOException {
+  protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
 
     res.setContentType("text/plain");
+
     String urlPath = req.getPathInfo();
 
     // check we have a URL!
@@ -51,12 +61,12 @@ public class SkierServlet extends HttpServlet {
 
 
 
+
   @Override
   protected void doPost(HttpServletRequest request, HttpServletResponse response)
       throws ServletException, IOException {
 
-//    factory.setHost(rabbitMQHost);
-
+    factory.setHost(rabbitMQHost);
     PrintWriter printWriter = response.getWriter();
     response.setContentType("application/json");
     response.setCharacterEncoding("UTF-8");
@@ -86,6 +96,11 @@ public class SkierServlet extends HttpServlet {
         stringBuilder.append(str);
       }
       LiftRideRecord liftRideRecord = gson.fromJson(stringBuilder.toString(), LiftRideRecord.class);
+      liftRideRecord.setResortID( Integer.parseInt(urlParts[validUrlPathResortNumberPosition]));
+      liftRideRecord.setSeasonID(urlParts[validUrlPathSeasonIDPosition]);
+      liftRideRecord.setDayID(urlParts[validUrlPathDaysIDPosition]);
+      liftRideRecord.setSkierID(Integer.parseInt(urlParts[validUrlPathSkiersIDPosition]));
+
 
       if (!isPostValid(liftRideRecord)) {
         Message message = new Message("The request body is invalid");
@@ -93,15 +108,17 @@ public class SkierServlet extends HttpServlet {
         printWriter.write(response.getStatus() + gson.toJson(message));
         return;
       }
-//
-//      try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()){
-//        channel.queueDeclare(rabbitMQName, false, false, false, null);
-//        channel.basicPublish("", rabbitMQName, null, liftRideRecord.toString().getBytes());
-//        System.out.println(" Sent " + liftRideRecord);
-//      } catch (Exception e) {
-//        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-//        printWriter.write(response.getStatus()  + "Fail to publish message to queue");
-//      }
+
+      // send to rabbitmq
+      try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()){
+        channel.queueDeclare(rabbitMQName, false, false, false, null);
+        channel.basicPublish("", rabbitMQName, null, liftRideRecord.toString().getBytes());
+        System.out.println(" Sent " + liftRideRecord);
+      } catch (Exception e) {
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        printWriter.write(response.getStatus()  + "Fail to publish message to queue");
+        return;
+      }
 
       response.setStatus(HttpServletResponse.SC_OK);
       printWriter.write(response.getStatus() + gson.toJson(stringBuilder));
@@ -109,22 +126,13 @@ public class SkierServlet extends HttpServlet {
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       printWriter.write(response.getStatus()  + "The request body is invalid with exception");
     }
-  }
 
+  }
 
   private boolean isUrlValid(String[] urlPath) {
     // validate the request url path according to the API spec
     // example valid path
     // "/skier/{resortID}/seasons/{seasonID}/days/{dayID}/skiers/{skierID}"
-
-    int validUrlPathLength = 8;
-    int validUrlPathResortNumberPosition = 1;
-    int validUrlPathSeasonPosition = 2;
-    int validUrlPathSeasonIDPosition = 3;
-    int validUrlPathDaysPosition = 4;
-    int validUrlPathDaysIDPosition = 5;
-    int validUrlPathSkiersPosition = 6;
-    int validUrlPathSkiersIDPosition = 7;
 
     String dayID = "1";
     String seasonID = "2024";
@@ -155,6 +163,7 @@ public class SkierServlet extends HttpServlet {
     return false;
   }
 
+
   private boolean isPostValid(LiftRideRecord liftRideRecord) {
     //  liftID - between 1 and 40
     //  time - between 1 and 360
@@ -179,6 +188,3 @@ public class SkierServlet extends HttpServlet {
     }
   }
 }
-
-
-
