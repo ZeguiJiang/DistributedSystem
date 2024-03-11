@@ -33,27 +33,26 @@ public class ConsumerThread implements Runnable {
 
         String message = new String(delivery.getBody(), "UTF-8");
         try {
-          JsonObject jsonObject = gson.fromJson(message, JsonObject.class);
-          Integer skierID = jsonObject.get("skierID").getAsInt();
+          JsonObject liftRideRecord = gson.fromJson(message, JsonObject.class);
+          int skierID = liftRideRecord.get("skierID").getAsInt();
 
-          if ( Consumer.record.containsKey(skierID) ) {
-            Consumer.record.get(skierID).add(jsonObject);
+
+          if ( Consumer.liftRecordsMap.containsKey(skierID) ) {
+            Consumer.liftRecordsMap.get(skierID).add(liftRideRecord);
           } else {
-            List<JsonObject> jsonObjects = Collections.synchronizedList(new ArrayList<>());
-            jsonObjects.add(jsonObject);
-            Consumer.record.put(skierID, jsonObjects);
+            List<JsonObject> liftRideRecords = Collections.synchronizedList(new ArrayList<>());
+            liftRideRecords.add(liftRideRecord);
+            Consumer.liftRecordsMap.put(skierID, liftRideRecords);
           }
-          System.out.println("Successful consume object: " + jsonObject + ", Thread Id is: " + Thread.currentThread().getId());
+//           System.out.println("Successful consume object: " + liftRideRecord + ", Thread Id is: " + Thread.currentThread().getId());
         } catch ( Exception e) {
           String error_message = String.format("Fail to consume Object %s", message);
           System.out.println(error_message + e);
         }
       };
-
       channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {});
     } catch (Exception e) {
       e.printStackTrace();
     }
-
   }
 }

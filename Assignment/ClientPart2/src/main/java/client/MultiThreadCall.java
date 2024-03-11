@@ -21,7 +21,8 @@ public class MultiThreadCall {
   public static void main(String[] args) throws InterruptedException {
 
 //    final String ipAddress = "localhost:8080";
-    final String ipAddress = "34.220.164.24:8080";
+//    final String ipAddress = "34.208.249.172:8080";
+    final String ipAddress = "Server-LB-1567985433.us-west-2.elb.amazonaws.com";
     final int numberOfThreadForProcess1 = 32;
     final int numberOfThreadForProcess2 = 1200;
     ExecutorService executor = Executors.newFixedThreadPool(numberOfThreadForProcess1 + numberOfThreadForProcess2);
@@ -32,8 +33,6 @@ public class MultiThreadCall {
     AtomicInteger requestSuccessCount = new AtomicInteger(0);
     AtomicInteger requestFailureCount = new AtomicInteger(0);
     List<ResponseData> responseDataList = Collections.synchronizedList(new ArrayList<>());
-
-
 
 
     long threadStartTime = System.currentTimeMillis();

@@ -1,7 +1,13 @@
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServlet;
@@ -16,9 +22,12 @@ import com.google.gson.Gson;
 public class SkierServlet extends HttpServlet {
 
   private Gson gson = new Gson();
-  public static final String rabbitMQName = "skiRideQueue";
-  public static final String rabbitMQHost = "localhost";
-  private ConnectionFactory factory = new ConnectionFactory();
+  private Properties properties = new Properties();
+  private String rabbitMQName;
+  private ConnectionFactory connectionFactory;
+  private BlockingQueue<Channel> channelPool;
+  private Connection connection;
+  private int numberOfChannel;
 
   private final int validUrlPathLength = 8;
   private final int validUrlPathResortNumberPosition = 1;
@@ -28,6 +37,62 @@ public class SkierServlet extends HttpServlet {
   private final int validUrlPathDaysIDPosition = 5;
   private final int validUrlPathSkiersPosition = 6;
   private final int validUrlPathSkiersIDPosition = 7;
+
+
+  @Override
+  public void init() throws ServletException {
+    // init rabbitmq connection and thread pool
+    super.init();
+    try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("rabbitmq.conf")) {
+      if ( inputStream == null) {
+        throw new ServletException("Fail to config rabbitMq because unable to read config file");
+      }
+
+      properties.load(inputStream);
+      connectionFactory = new ConnectionFactory();
+      connectionFactory.setHost(properties.getProperty("host"));
+      connectionFactory.setPort(Integer.parseInt(properties.getProperty("port")));
+      connectionFactory.setUsername(properties.getProperty("username"));
+      connectionFactory.setPassword(properties.getProperty("password"));
+      rabbitMQName = properties.getProperty("queueName");
+      numberOfChannel = Integer.parseInt(properties.getProperty("numberOfChannel"));
+
+      connection = connectionFactory.newConnection();
+      channelPool = new LinkedBlockingQueue<>();
+
+      for (int i=0; i < numberOfChannel; i++ ) {
+        Channel channel = connection.createChannel();
+        channel.queueDeclare(rabbitMQName, false, false, false, null);
+        channelPool.add(channel);
+      }
+
+      System.out.println("Successful to Init Servlet ");
+
+    } catch (Exception e) {
+      // if init fail, we will throw new exception
+      System.out.println(" Fail to Init Servlet");
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void destroy() {
+    super.destroy();
+    try {
+      // Close all channel
+      for (Channel channel : channelPool) {
+        if (channel.isOpen()) {
+          channel.close();
+        }
+      }
+      // close connection
+      if (connection != null && connection.isOpen()) {
+          connection.close();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
 
 
   @Override
@@ -45,8 +110,6 @@ public class SkierServlet extends HttpServlet {
     }
 
     String[] urlParts = urlPath.split("/");
-    // and now validate url path and return the response status code
-    // (and maybe also some value if input is valid)
 
     if (!isUrlValid(urlParts)) {
       res.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -66,7 +129,6 @@ public class SkierServlet extends HttpServlet {
   protected void doPost(HttpServletRequest request, HttpServletResponse response)
       throws ServletException, IOException {
 
-    factory.setHost(rabbitMQHost);
     PrintWriter printWriter = response.getWriter();
     response.setContentType("application/json");
     response.setCharacterEncoding("UTF-8");
@@ -110,13 +172,24 @@ public class SkierServlet extends HttpServlet {
       }
 
       // send to rabbitmq
-      try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()){
-        channel.queueDeclare(rabbitMQName, false, false, false, null);
-        channel.basicPublish("", rabbitMQName, null, liftRideRecord.toString().getBytes());
-        System.out.println(" Sent " + liftRideRecord);
+      try {
+        Channel channel = channelPool.take();
+
+        // convert to JsonPrimitive
+        JsonObject messageObject = new JsonObject();
+        messageObject.add("skierID", new JsonPrimitive(Integer.parseInt(urlParts[validUrlPathSkiersIDPosition])));
+        messageObject.add("resortID", new JsonPrimitive(Integer.parseInt(urlParts[validUrlPathResortNumberPosition])));
+        messageObject.add("liftID", new JsonPrimitive(liftRideRecord.getLiftID()));
+        messageObject.add("seasonID", new JsonPrimitive(urlParts[validUrlPathSeasonIDPosition]));
+        messageObject.add("dayID", new JsonPrimitive(urlParts[validUrlPathDaysIDPosition]));
+        messageObject.add("time", new JsonPrimitive(liftRideRecord.getTime()));
+
+        channel.basicPublish("", rabbitMQName, null, messageObject.toString().getBytes());
+//        System.out.println(" Successful Sent message with record: " + liftRideRecord);
+        channelPool.add(channel);
       } catch (Exception e) {
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        printWriter.write(response.getStatus()  + "Fail to publish message to queue");
+        printWriter.write(response.getStatus()  + " Fail to send message to RabbitMq");
         return;
       }
 
@@ -187,4 +260,5 @@ public class SkierServlet extends HttpServlet {
       return false;
     }
   }
+
 }

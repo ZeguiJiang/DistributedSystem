@@ -66,7 +66,8 @@ public class LiftRideRecord {
     return seasonID;
   }
 
-  @Override
+
+    @Override
   public String toString() {
     return "LiftRideRecord{" +
         "skierID=" + skierID +

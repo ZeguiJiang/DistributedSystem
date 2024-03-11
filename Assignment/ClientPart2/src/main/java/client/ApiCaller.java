@@ -1,24 +1,21 @@
 package client;
 
-import static java.net.HttpURLConnection.HTTP_CREATED;
-import static java.net.HttpURLConnection.HTTP_OK;
-import static org.apache.commons.httpclient.HttpStatus.SC_BAD_REQUEST;
-import static org.apache.commons.httpclient.HttpStatus.SC_NOT_FOUND;
-
-
 import io.swagger.client.ApiClient;
 import io.swagger.client.ApiException;
 import io.swagger.client.ApiResponse;
 import io.swagger.client.api.SkiersApi;
 import io.swagger.client.model.LiftRide;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.List;
 import model.LiftRideRecord;
 import model.ResponseData;
+
+import static java.net.HttpURLConnection.HTTP_CREATED;
+import static java.net.HttpURLConnection.HTTP_OK;
+import static org.apache.commons.httpclient.HttpStatus.SC_BAD_REQUEST;
+import static org.apache.commons.httpclient.HttpStatus.SC_NOT_FOUND;
 
 
 public class ApiCaller implements Runnable {
@@ -66,7 +63,9 @@ public class ApiCaller implements Runnable {
 
     SkiersApi skiersApi = new SkiersApi();
     ApiClient apiClient = skiersApi.getApiClient();
-    apiClient.setBasePath("http://" + this.ipAddress + "/Server_war/"); // "http://localhost:8080/Server_war_exploded/"
+//    apiClient.setBasePath("http://" + this.ipAddress + "/LIftServer_war_exploded/"); // "http://localhost:8080/Server_war_exploded/"
+    apiClient.setBasePath("http://" + this.ipAddress + "/LIftServer_war/");
+//    apiClient.setBasePath("http://" + this.ipAddress + "/Server_war/");
 //    apiClient.setBasePath("http://" + this.ipAddress + "/Server_war_exploded/"); // "http://localhost:8080/Server_war_exploded/"
 
 
@@ -90,8 +89,6 @@ public class ApiCaller implements Runnable {
     this.requestSuccessCount.getAndAdd(tmpSuccessCount);
     this.requestFailureCount.getAndAdd(tmpRequestCount - tmpSuccessCount);
     this.startLatch.countDown();
-//    System.out.println("requestSuccessCount " + requestSuccessCount.get());
-//    System.out.println("API Finished ");
   }
 
 
